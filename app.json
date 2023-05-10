@@ -1,7 +1,7 @@
 {
-    "name": "flipkart-product-stock",
+    "name": "stock-management",
     "description": "API to scrapes product details and pincode specific stock from Flipkart",
-    "repository": "https://github.com/dvishal485/flipkart-product-stock",
+    "repository": "",
     "logo": "https://raw.githubusercontent.com/dvishal485/flipkart-product-stock/main/logo.jpeg",
     "keywords": [
         "flipkart",

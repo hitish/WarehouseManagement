@@ -1,22 +1,21 @@
-import API.flipkart as flipkart
+import API.flipkartfinal as flipkart
+from selenium import webdriver
 import asyncio
+import pdb
 
-
-async def main(link, pincode):
-    result = await flipkart.getProductDetails(link, pincode)
+async def main(link):
+    result = await flipkart.getProductDetails(link)
+    print(result)
     try:
         print('Product Name : '+result["name"])
         print('Current Price : '+str(result["current_price"]))
         print('Original Price : '+str(result["original_price"]))
         print('Discount : '+result["discount"])
         print('Share URL : '+result["share_url"])
-        print('F-Assure Product : '+str(result["fassured"]))
-        print('In Stock (general) : ' +
-              str(result["stock_details"]["general_stock"]))
-        print('In Stock (for pincode '+str(result["stock_details"]["pincode"])+') : ' +
-              str(result["stock_details"]["pincode_stock"]))
-    except:
-        print('Error : Some error occurred while fetching product details')
+    except Exception as e:
+        print(result)
+        error = 'Some error occured while fetching product detail.Error for page {} is {}'.format(link, e)
+        print(error)
     finally:
         print(br)
         check = input('Check out other product? (Y/N)')
@@ -36,12 +35,9 @@ print('=> Flipkart Product Stock Details in a specific pincode <=')
 def askInput():
     print(br)
     link = input("Input link of product : ")
-    pincode = input("Your pincode : ")
     print(br)
-    print('Please wait while we check your product on Flipkart...')
-    print(br)
-    return [link, pincode]
+    return [link]
 
 
 inputData = askInput()
-asyncio.run(main(inputData[0], inputData[1]))
+asyncio.run(main(inputData[0]))

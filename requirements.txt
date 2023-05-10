@@ -1,4 +1,9 @@
-pyppeteer
 asyncio
+selenium
+bs4
 fastapi
+pandas
 uvicorn[standard]
+openpyxl
+mysql-connector-python
+json

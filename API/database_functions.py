@@ -1,0 +1,22 @@
+import asyncio
+import mysql.connector as mysql
+
+
+async def create_database_connection():
+    try:
+        HOST = "103.159.85.152" # or "domain.com"
+        # database name, if you want just to connect to MySQL server, leave it empty
+        DATABASE = "megabox_stockdata"
+        # this is the user you create
+        USER = "megabox_stock"
+        # user password
+        PASSWORD = "Mega@12345"
+        # connect to MySQL server
+        connection = mysql.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD)
+             
+
+    except Exception as e:
+        error = 'not connected due to {}'.format(e)
+        print(error)
+	
+    return(connection)
