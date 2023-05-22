@@ -1,18 +1,29 @@
 {% extends 'base.html' %}
+{% load mathfilters %}
 
 {% block title %}
-	<h1 class="display-2 justify-content-center">Add Checked Stock</h1>
+	<h1 class="display-2 justify-content-center">Check Stock via Purchase Order</h1>
 {% endblock title %}
 
 {% block content %}
     
+<form action = "" method = "get" enctype="multipart/form-data">
+	{% csrf_token %}
+	{{form_purchase_order }}
+	<input type="submit" name="load_purchase" value="Submit">
+</form>
 <form class="row gx-5" action = "" method = "post" enctype="multipart/form-data">
 	{% csrf_token %}
 
 	<div class=" mb-3 row ">
 		<div class = "form-floating col-12">
-			<input type="text" class="form-control" name="online_code" maxlength="100"  id="id_online_code">
-			<label class="col-sm-2 col-form-label" for="id_product_id">Product id:</label>
+			<select class="form-select" name="online_code" id="id_online_code" style="padding-left:45px" >
+                <option value="0">----Select Product----</opiton>
+				{%for product in products %}
+					<option value="{{product.online_code.product_id}}" unchecked_id="{{product.id}}" quantity ="{{product.quantity|sub:product.checked_quantity}}" >{{product.online_code.product_id}} - {{product.online_code}}</option>
+				{% endfor %}
+			</select>
+            <label class="col-sm-2 col-form-label" for="id_online_code">Product id:</label>
 		</div>
 	</div>
 	<div class=" mb-3 row ">
@@ -82,7 +93,8 @@
 		</div>
 
 		<div class="form-floating col-3">
-			<select class="form-select" name="qc_status" id="id_qc_status" style="padding-left:45px" >
+			<select class="form-select" name="qc_status" id="id_qc_status" style="padding-left:15px" required>
+                <option value="">----Select QC Status----</opiton>
 				{%for qc_status in qc_status_list %}
 					<option value="{{qc_status.id}}">{{qc_status.qc_status}}</option>
 				{% endfor %}
@@ -90,6 +102,7 @@
 			<label class="col-sm-6 col-form-label" for="id_qc_status">Qc Status:</label>
 		</div>
 	</div>
+    <input class="visually-hidden" name="unchecked_id" type="hidden" id="id_unchecked_id" >
 	<input class="visually-hidden" name="metadata" type="hidden" id="id_metadata" >
 	<div class=" mb-3 row ">
 		<div class = "col-12">
@@ -102,9 +115,15 @@
 <script>
   $("#id_online_code").change(function () {
 	
+    var unchecked_id = $('option:selected', this).attr("unchecked_id");
+    var quantity = $('option:selected', this).attr("quantity");
+    console.log(unchecked_id);
+    console.log(quantity);id_unchecked_id
+    $("#id_quantity").attr({"max":quantity});
+    $("#id_unchecked_id").val(unchecked_id);
 	var online_code = $(this).val();  // get the selected country ID from the HTML input
 	var link = "/product/add-checked-stock/"
-	var purl = link.concat(online_code)
+	var purl = link.concat(online_code);
 	var settings = {
 		"url": purl,
 		"method": "GET",

@@ -18,17 +18,5 @@ class Migration(migrations.Migration):
                 ('purchase_details', models.CharField(max_length=100)),
             ],
         ),
-        migrations.CreateModel(
-            name='unchecked_stock',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('box_id', models.CharField(max_length=100, null=True)),
-                ('online_code', models.CharField(max_length=100, null=True)),
-                ('quantity', models.IntegerField()),
-                ('sosp', models.FloatField(null=True)),
-                ('cosp', models.FloatField(null=True)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('purchase_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='product.purchase_order')),
-            ],
-        ),
+       
     ]

@@ -9,9 +9,11 @@ class Product_details(models.Model):
    brand_id = models.ForeignKey("Product_brand",on_delete=models.CASCADE,null=True)
    rating = models.FloatField(null=True)
    mrp = models.FloatField(null=True)
-   color = models.CharField(max_length=50,null=True) 
-   size = models.CharField(max_length=25,null=True)
+   color = models.CharField(max_length=100,null=True) 
+   model = models.CharField(max_length=10,null=True) 
+   size = models.CharField(max_length=50,null=True)
    metadata = models.JSONField(null=True)
+   timestamp = models.DateTimeField(auto_now_add=True)
 
    def __str__(self):
         return self.product_name
@@ -29,8 +31,6 @@ class Product_brand(models.Model):
     brand_name= models.CharField(max_length=100,unique=True)
     brand_desc=models.TextField(null=True)
 
-    # renames the instances of the model
-    # with their title name
     def __str__(self):
         return self.brand_name
 
@@ -41,28 +41,34 @@ class Purchase_order(models.Model):
     quantity = models.BigIntegerField(null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True,null=True)
 
+    def __str__(self):
+        return self.purchase_details
+
+
+class product_stock(models.Model):
+    product_id = models.OneToOneField("Product_details", on_delete=models.CASCADE)
+    checked_stock = models.IntegerField(null=True,default=0)
+    unchecked_stock = models.IntegerField(null=True,default=0)
+
 class unchecked_stock(models.Model):
     purchase_id = models.ForeignKey("Purchase_order",on_delete=models.CASCADE)
     box_id = models.CharField( max_length=100,null=True)
-    online_code = models.CharField(max_length=100,null=True)
+    online_code = models.ForeignKey("Product_details", on_delete=models.CASCADE)
     quantity = models.IntegerField()
+    checked_quantity = models.IntegerField(null=True,default=0)
     sosp = models.FloatField(null=True)
-   # cosp = models.FloatField(null = True)
+    #cosp = models.FloatField(null = True)
     timestamp = models.DateTimeField(auto_now_add=True)
- 
-class product_stock(models.Model):
-    product_id = models.ForeignKey("Product_details", on_delete=models.CASCADE)
-    checked_stock = models.IntegerField(null=True)
-    unchecked_stock = models.IntegerField(null=True)
-d
+
 class checked_stock(models.Model):
     product_id = models.ForeignKey("Product_details", on_delete=models.CASCADE)
     purchase_id = models.ForeignKey("Purchase_order",on_delete=models.CASCADE,null=True)
     quantity = models.IntegerField()
+    sold_quantity = models.IntegerField(null=True,default=0)
     sosp = models.FloatField(null=True)
     cosp = models.FloatField(null=True)
     mbp = models.FloatField()
-    qc_status = models.ForeignKey("product_qc_status", on_delete=models.CASCADE)
+    qc_status = models.ForeignKey("product_qc_status", on_delete=models.CASCADE,null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 class product_qc_status(models.Model):

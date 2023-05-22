@@ -11,10 +11,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='unchecked_stock',
-            name='cosp',
-        ),
+        
         migrations.CreateModel(
             name='product_stock',
             fields=[
