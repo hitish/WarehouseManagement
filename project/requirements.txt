@@ -9,3 +9,4 @@ mysql-connector-python
 json
 django-mathfilters
 django-address
+django-crispy-forms

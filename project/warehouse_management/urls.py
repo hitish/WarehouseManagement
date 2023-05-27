@@ -17,11 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from product.views import add_purchase_order_view,add_checked_stock_view,web_scrap_product_data,po_stock_check_view
+from accounts.views import account_transaction_view,account_display_view
 
 urlpatterns = [
     path('product/add-purchase-order/', add_purchase_order_view),
     path('product/po-stock-checking/', po_stock_check_view),
     path('product/add-checked-stock/', add_checked_stock_view),
     path('product/add-checked-stock/<str:product_id>', web_scrap_product_data),
+    path('accounts/account-transaction/', account_transaction_view),
+    path('accounts/account-display/', account_display_view),
     path('admin/', admin.site.urls),
 ]

@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'product.apps.ProductConfig',
     'mathfilters',
     'address',
+    'crispy_forms',
+    'crispy_bootstrap5',
     'accounts.apps.AccountsConfig',
 ]
 
@@ -123,6 +125,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
