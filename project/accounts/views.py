@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from accounts.forms import create_account_transaction_form,create_account_display_form
 from .models import voucher,transaction,account,voucher_type
+from datetime import datetime, timedelta
 # Create your views here.
 
 def create_account(request):
@@ -15,7 +16,7 @@ def account_transaction_view(request):
     print(request)
     if request.method == 'POST':
         instance = request.POST
-        #print(instance)
+        print(instance)
         amount = float(instance["amount"])
         if not instance['narration']:
             desc = None
@@ -28,7 +29,9 @@ def account_transaction_view(request):
         acc = account.objects.get(id=instance["selected_account"])
         pay_acc = account.objects.get(id=instance["payment_account"])
 
-        if instance["transaction_type"]:
+        print(instance["transaction_type"])
+
+        if instance["transaction_type"]== True:
             acc_bal = acc.balance - amount
             pay_acc_bal = pay_acc.balance + amount
             transaction.objects.create(voucher=voucher_id,account_id=acc,entry_type=True,amount=amount,account_balance = acc_bal)
@@ -54,14 +57,29 @@ def account_display_view(request):
     if request.method == 'POST':
         instance = request.POST
         acc = account.objects.get(id=instance["selected_account"])
-        start_date = instance["start_date"]
-        end_date = instance["end_date"]
-
+        start_date = datetime.strptime(instance["start_date"], '%Y-%m-%d').date()
+        end_date = datetime.strptime(instance["end_date"], '%Y-%m-%d').date() +timedelta(days=1)
+        tran_table = []
         try:
             transactions = transaction.objects.filter(account_id = acc,timestamp__gte = start_date , timestamp__lte = end_date )
-            print(transactions)
+            
             for tran in transactions:
-                print(tran.voucher.description)
+                tran_entry = {}
+                tran_entry["date"] = tran.timestamp.date()
+                tran_entry["description"] = tran.voucher.description
+                if tran.entry_type:
+                    tran_entry["debt"] = ""
+                    tran_entry["credit"] = tran.amount
+                else:
+                    tran_entry["credit"] = ""
+                    tran_entry["debt"] = tran.amount
+                
+                tran_entry["balance"] = tran.account_balance
+                tran_table.append(tran_entry)
+
+            context['form']= create_account_display_form(instance)
+            context['tran_table']= tran_table
+                
         except Exception as e:
             print(e)
     

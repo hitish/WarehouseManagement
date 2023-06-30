@@ -2,10 +2,7 @@ from django.db import models
 from address.models import AddressField
 from django.core.validators import RegexValidator
 
-#from django_mysql.models import EnumField
 
-
-# Create your models here.
 class account(models.Model):
     name = models.CharField(max_length=150,unique=True)
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$', message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
@@ -37,8 +34,10 @@ class voucher_type(models.Model):
     def __str__(self):
         return self.name
 
+
 class voucher(models.Model):
     voucher_type = models.ForeignKey("voucher_type",on_delete=models.CASCADE)
+    voucher_object_id = models.CharField(max_length=100)
     description = models.TextField(null=True)
     amount = models.DecimalField(decimal_places=2,max_digits=25)
     timestamp = models.DateTimeField(auto_now_add=True)

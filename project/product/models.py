@@ -1,5 +1,6 @@
 from django.db import models
-
+from accounts.models import account
+from address.models import Address
 
 # Create your models here.
 class Product_details(models.Model):
@@ -69,8 +70,24 @@ class checked_stock(models.Model):
     cosp = models.FloatField(null=True)
     mbp = models.FloatField()
     qc_status = models.ForeignKey("product_qc_status", on_delete=models.CASCADE,null=True)
+    barcode = models.FileField(upload_to="static/barcode/",null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 class product_qc_status(models.Model):
     qc_status = models.CharField(max_length=100,unique=True)
     qc_details = models.TextField(null=True)
+
+class sale_bill(models.Model):
+    account_id = models.ForeignKey("accounts.account", on_delete=models.CASCADE,null=True)
+    address_id = models.ForeignKey("address.Address", on_delete=models.CASCADE,null=True)
+    bill_amount = models.DecimalField(decimal_places=2,max_digits=25)
+    product_qty = models.IntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_valid = models.BooleanField(default=True)
+
+class product_sold(models.Model):
+    sale_bill_id = models.ForeignKey("sale_bill", on_delete=models.CASCADE,null=True)
+    checked_stock_id = models.ForeignKey("checked_stock", on_delete=models.CASCADE,null=True)
+    qty = models.IntegerField()
+    discount = models.DecimalField(default=0,decimal_places=2,max_digits=5)
+    price_per_piece = models.DecimalField(decimal_places=2,max_digits=25)

@@ -65,15 +65,20 @@ def create_product_code(row):
         return create_product_code(row)
 
 
-def add_product(row):
+def add_product(row,product_code):
     brand_obj = check_brand(row['brand'])
     cat_obj = check_category(row['category'])
+
     if not 'rating' in row.keys():
+        rating = None
+    elif row['rating']== '':
         rating = None
     else:
         rating = row['rating']
 
     if not 'metadata' in row.keys():
+        metadata = None
+    elif row['metadata']== '':
         metadata = None
     else:
         metadata = json.loads(row['metadata'])
@@ -99,7 +104,7 @@ def add_product(row):
         mrp = row['mrp']
                
     
-    response = Product_details.objects.create(product_id=row['online_code'],product_name=row['name'],brand_id=brand_obj,category_id=cat_obj,mrp=mrp,rating=rating,color=color,size=size,model=model,metadata=metadata)
+    response = Product_details.objects.create(product_id=product_code,product_name=row['name'],brand_id=brand_obj,category_id=cat_obj,mrp=mrp,rating=rating,color=color,size=size,model=model,metadata=metadata)
     if response:
         product_stock.objects.create(product_id=response,checked_stock=0,unchecked_stock=0)
 

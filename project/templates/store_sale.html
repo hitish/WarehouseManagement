@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+
+{% block title %}
+	<h1 class="display-2 justify-content-center">Account Transactions</h1>
+{% endblock title %}
+
+{% block content %}
+    
+<form action = "" method = "post" enctype="multipart/form-data">
+	{% csrf_token %}
+	{% crispy form %}
+
+	<div class=" mb-3 row ">
+		<div class = "form-floating col-6">
+			<input type="text" class="form-control" name="product_code" maxlength="100"  id="id_online_code">
+			<label class="col-sm-2 col-form-label" for="id_product_code>Product id:</label>
+		</div>
+	</div>
+	
+</form>
+{% endblock content %}

@@ -7,6 +7,71 @@
 
 {% block content %}
     
+<div class="modal fade" id="onload" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+	  <div class="modal-content">
+		<div class="modal-header">
+		  <h5 class="modal-title" id="exampleModalLabel">Status</h5>
+		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+		</div>
+		<div class="modal-body">
+			{{ message }}
+
+			<div id="print-area" style="width:260px;height:120px;font-size:12px">
+				<div class="row " style="height:40px;overflow:hidden">
+					<div class="col-12">
+						{{product_name}}
+					</div>
+					
+				</div>
+				<div class=" row ">
+					<div class="col-7">
+						<image src="../../{{ product_saved.barcode }}" style="height:80px;width:160px"/>
+					</div>
+					<div class="col-5">
+						<div class=" row ">
+							<div class="col-12">
+								MRP : {{mrp}}
+							</div>
+						</div>
+						<div class=" row ">
+							<div class="col-12">
+								MBP : {{product_saved.mbp}}
+							</div>
+						</div>
+						<div class=" row ">
+							<div class="col-12">
+								MEGABOX
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<div class="modal-footer">
+		  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+		  {% if not product_saved == False  %}
+		  	<button type="button" id="print_barcode" class="btn btn-primary">Print Barcode</button>
+		  {% endif %}
+		</div>
+	  </div>
+	</div>
+  </div>
+  <script type="text/javascript">
+    window.onload = () => {
+		 {% if not product_saved == None  %}
+		 	$('#onload').modal('show');
+		 {% endif %}
+	
+	$("#print_barcode").click(function(){
+
+		$("#print-area").printThis();
+	  });
+	
+    }
+  </script>
+
 <form action = "" method = "get" enctype="multipart/form-data">
 	{% csrf_token %}
 	{{form_purchase_order }}
@@ -111,38 +176,46 @@
 	</div>
 </form>
 
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-<script>
-  $("#id_online_code").change(function () {
-	
-    var unchecked_id = $('option:selected', this).attr("unchecked_id");
-    var quantity = $('option:selected', this).attr("quantity");
-    console.log(unchecked_id);
-    console.log(quantity);id_unchecked_id
-    $("#id_quantity").attr({"max":quantity});
-    $("#id_unchecked_id").val(unchecked_id);
-	var online_code = $(this).val();  // get the selected country ID from the HTML input
-	var link = "/product/add-checked-stock/"
-	var purl = link.concat(online_code);
-	var settings = {
-		"url": purl,
-		"method": "GET",
-		"timeout": 0,
-	  };
-	
-	  $.ajax(settings).done(function (response) {
-			console.log(response)
-			$("#id_name").val(response['name']);
-			$("#id_brand").val(response['brand']);
-			$("#id_category").val(response['category']);
-			$("#id_model").val(response['model']);
-			$("#id_color").val(response['color']);
-			$("#id_rating").val(response['rating']);
-			$("#id_size").val(response['size']);
-			$("#id_cosp").val(response['current_price']);
-			$("#id_mrp").val(response['original_price']);
-			$("#id_metadata").val(JSON.stringify(response['metadata']));
-	  });
-  });
-</script>
+
 {% endblock content %}
+
+
+{% block js_block %}
+
+<script>
+	$("#id_online_code").change(function () {
+	  
+	  var unchecked_id = $('option:selected', this).attr("unchecked_id");
+	  var quantity = $('option:selected', this).attr("quantity");
+	  console.log(unchecked_id);
+	  console.log(quantity);id_unchecked_id
+	  $("#id_quantity").attr({"max":quantity});
+	  $("#id_unchecked_id").val(unchecked_id);
+	  var online_code = $(this).val();  // get the selected country ID from the HTML input
+	  var link = "/product/add-checked-stock/"
+	  var purl = link.concat(online_code);
+	  var settings = {
+		  "url": purl,
+		  "method": "GET",
+		  "timeout": 0,
+		};
+	  
+		$.ajax(settings).done(function (response) {
+			  console.log(response)
+			  $("#id_name").val(response['name']);
+			  $("#id_brand").val(response['brand']);
+			  $("#id_category").val(response['category']);
+			  $("#id_model").val(response['model']);
+			  $("#id_color").val(response['color']);
+			  $("#id_rating").val(response['rating']);
+			  $("#id_size").val(response['size']);
+			  $("#id_cosp").val(response['current_price']);
+			  $("#id_mrp").val(response['original_price']);
+			  $("#id_metadata").val(JSON.stringify(response['metadata']));
+		});
+	});
+  </script>
+  
+<script src="/static/js/printThis.js"></script>
+
+{% endblock js_block %}

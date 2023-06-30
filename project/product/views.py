@@ -1,16 +1,19 @@
 from django.http import HttpResponse,JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from django.template.loader import get_template
-from product.forms import Purchase_order_form,po_stock_check_form
+from product.forms import Purchase_order_form,po_stock_check_form,sales_form,product_row_formset
 from .models import Purchase_order,unchecked_stock,checked_stock,Product_brand,Product_categories,product_qc_status
 import pandas as pd
 import math
 from django.core.files.storage import FileSystemStorage
 import core.utils as utils
-from django.views.decorators.csrf import csrf_exempt
+from io import BytesIO
+from barcode import EAN13,Code128,UPCA,Code39
+from barcode.writer import SVGWriter
+
+#from django.views.decorators.csrf import csrf_exempt
 
 
-@csrf_exempt
 def add_purchase_order_view(request):
     
     if request.method == 'POST' and request.FILES['order_detail_file']:
@@ -31,13 +34,15 @@ def add_purchase_order_view(request):
                 row = changeNaNtoNone(dbframe,i) 
                 
                 if not row['online_code']:
-                    row['online_code'] = utils.create_product_code(row)
+                    product_code = utils.create_product_code(row)
+                else:
+                    product_code = row['online_code']
 
-                product = utils.check_product(row['online_code'])
+                product = utils.check_product(product_code)
                 if not product:
-                    product = utils.add_product(row)
+                    product = utils.add_product(row,product_code)
                 
-                utils.update_product_unchecked_stock(row['online_code'],row['quantity'])                
+                utils.update_product_unchecked_stock(product_code,row['quantity'])                
 
                 box_no = row['box_id']
                 if box_no:
@@ -65,39 +70,62 @@ def add_purchase_order_view(request):
     return HttpResponse(tmpl_string)
 
 
+
 def add_checked_stock_view(request):
     context = {}
     context['brands']= Product_brand.objects.all()
     context['categories']= Product_categories.objects.all()
     context['qc_status_list'] = product_qc_status.objects.all()
-   
+    context["product_saved"] = 0
     if request.method == 'POST':
         instance = request.POST
         if not instance['online_code']:
-            instance['online_code'] = utils.create_product_code(instance)
+            product_code = utils.create_product_code(instance)
+        else:
+            product_code = instance['online_code']
 
-        product = utils.check_product(instance['online_code'])
+        product = utils.check_product(product_code)
         if not product:
-            product = utils.add_product(instance)
+            product = utils.add_product(instance,product_code)
 
         qc_status = product_qc_status.objects.get(id=instance['qc_status'])
         
         if utils.is_null(instance['cosp']) or instance['cosp'] == "":
             cosp = None
         else:
-            cosp = instance['cosp']
+            cosp = instance['cosp']  
+
+        
 
         obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)    
         
         if obj:
-            utils.update_product_checked_stock(instance['online_code'],instance['quantity'])
-
+            utils.update_product_checked_stock(product_code,instance['quantity'])
+            filename = "static/barcode/" + str(obj.id) + ".svg"
+           # length = 12- len(str(obj.id))
+            upc_code=""
+            for i in range(11- len(str(obj.id))):
+                upc_code = upc_code + "0"
+            upc_code = upc_code + str(obj.id)
+            with open(filename, "wb") as f:
+                writr = SVGWriter()
+                writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
+                Code128(upc_code, writer=writr).write(f)
+            obj.barcode = filename
         obj.save()
+        context["product_saved"] = obj
+        context["product_name"] = product.product_name
+        context["mrp"] = int(float(product.mrp))
+        context["message"] = "Product Saved Successfully"
+    else:
+        context["message"] = "Product Not Saved"
+        context["product_saved"] = False
+        
 
 
     #tmpl = get_template("add_checked_stock.html")
     #tmpl_string = tmpl.render({"form": form})
-
+    
     #    return HttpResponse(tmpl_string)
     return render(request, "add_checked_stock.html", context)
 
@@ -173,10 +201,27 @@ def po_stock_check_view(request):
         if obj:
             try:
                 utils.update_product_stock_cheking(instance['unchecked_id'],instance['quantity'],True)
+                filename = "static/barcode/" + str(obj.id) + ".svg"
+                 # length = 12- len(str(obj.id))
+                upc_code=""
+                for i in range(11- len(str(obj.id))):
+                    upc_code = upc_code + "0"
+                upc_code = upc_code + str(obj.id)
+                with open(filename, "wb") as f:
+                    writr = SVGWriter()
+                    writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
+                    Code128(upc_code, writer=writr).write(f)
+                obj.barcode = filename
+                context["product_saved"] = obj
+                context["product_name"] = product.product_name
+                context["mrp"] = int(float(product.mrp))
+                context["message"] = "Product Saved Successfully"
 
             except Exception as e:
-                 error = 'Error updating stock {}'.format(e)
-                 print(error)
+                error = 'Error updating stock {}'.format(e)
+                print(error)
+                context["message"] = error
+                context["product_saved"] = False
 
         obj.save()
 
@@ -184,3 +229,21 @@ def po_stock_check_view(request):
     context['form_purchase_order']  = form_purchase_order
 
     return render(request, "po_stock_check.html", context=context)
+
+
+def store_sale_view(request):
+    context = {}
+    context['form']= sales_form()
+    
+   
+    if request.method == 'POST':
+        formset = product_row_formset(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                
+                print(form)
+                
+            
+            return redirect('')
+
+    return render(request, "store_sale.html", context=context)
