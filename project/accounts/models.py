@@ -10,6 +10,7 @@ class account(models.Model):
     group = models.ForeignKey("account_group",on_delete=models.CASCADE)
     parent_account = models.ForeignKey("account",on_delete=models.CASCADE,null=True,blank=True)
     balance = models.FloatField(default=0.0)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -28,7 +29,7 @@ class account_group(models.Model):
         return self.name
 
 class voucher_type(models.Model):
-    name = models.CharField(max_length=150)
+    name = models.CharField(max_length=150) #1)journal 2)sales 3)expenses 4)return 5)bill_payments
     desc = models.TextField(null=True)
 
     def __str__(self):
@@ -50,4 +51,5 @@ class transaction(models.Model):
     amount = models.DecimalField(decimal_places=2,max_digits=25)
     account_balance = models.FloatField(null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
