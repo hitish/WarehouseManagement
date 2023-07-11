@@ -3,6 +3,8 @@ from django.shortcuts import render,redirect
 from django.template.loader import get_template
 from product.forms import Purchase_order_form,po_stock_check_form,sales_form,product_row_formset
 from .models import Purchase_order,unchecked_stock,checked_stock,Product_brand,Product_categories,product_qc_status
+from accounts.models import account
+from django.db.models import Q
 import pandas as pd
 import math
 from django.core.files.storage import FileSystemStorage
@@ -100,23 +102,35 @@ def add_checked_stock_view(request):
         obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)    
         
         if obj:
-            utils.update_product_checked_stock(product_code,instance['quantity'])
-            filename = "static/barcode/" + str(obj.id) + ".svg"
-           # length = 12- len(str(obj.id))
-            upc_code=""
-            for i in range(11- len(str(obj.id))):
-                upc_code = upc_code + "0"
-            upc_code = upc_code + str(obj.id)
-            with open(filename, "wb") as f:
-                writr = SVGWriter()
-                writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
-                Code128(upc_code, writer=writr).write(f)
-            obj.barcode = filename
-        obj.save()
-        context["product_saved"] = obj
-        context["product_name"] = product.product_name
-        context["mrp"] = int(float(product.mrp))
-        context["message"] = "Product Saved Successfully"
+            try:
+                utils.update_product_checked_stock(product_code,instance['quantity'])
+                    
+                #  rv = BytesIO()
+                upc_code = "MB" + qc_status.qc_code
+                for i in range(6 - len(str(obj.id))):
+                    upc_code = upc_code + "0"
+                upc_code = upc_code + str(obj.id)
+                # Code128(upc_code, writer=SVGWriter()).write(rv)
+                filename = "static/barcode/" + upc_code + ".svg"
+                with open(filename, "wb") as f:
+                    writr = SVGWriter()
+                    writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
+                    Code128(upc_code, writer=writr).write(f)
+                obj.barcode = upc_code
+                context["product_saved"] = obj
+                # context["barcode_byte"] = rv.read()
+                context["product_name"] = product.product_name
+                context["mrp"] = int(float(product.mrp))
+                context["message"] = "Product Saved Successfully"
+                obj.save()
+            except Exception as e:
+                error = 'Error updating stock {}'.format(e)
+                print(error)
+                context["message"] = error
+                context["product_saved"] = False
+              
+        
+        
     else:
         context["message"] = "Product Not Saved"
         context["product_saved"] = False
@@ -197,22 +211,28 @@ def po_stock_check_view(request):
         else:
             cosp = instance['cosp']
 
-        obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)    
+        obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)
+
+
         if obj:
             try:
                 utils.update_product_stock_cheking(instance['unchecked_id'],instance['quantity'],True)
-                filename = "static/barcode/" + str(obj.id) + ".svg"
+                
                  # length = 12- len(str(obj.id))
-                upc_code=""
-                for i in range(11- len(str(obj.id))):
+              #  rv = BytesIO()
+                upc_code = "MB" + qc_status.qc_code
+                for i in range(6 - len(str(obj.id))):
                     upc_code = upc_code + "0"
                 upc_code = upc_code + str(obj.id)
+               # Code128(upc_code, writer=SVGWriter()).write(rv)
+                filename = "static/barcode/" + upc_code + ".svg"
                 with open(filename, "wb") as f:
                     writr = SVGWriter()
                     writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
                     Code128(upc_code, writer=writr).write(f)
-                obj.barcode = filename
+                obj.barcode = upc_code
                 context["product_saved"] = obj
+               # context["barcode_byte"] = rv.read()
                 context["product_name"] = product.product_name
                 context["mrp"] = int(float(product.mrp))
                 context["message"] = "Product Saved Successfully"
@@ -231,19 +251,3 @@ def po_stock_check_view(request):
     return render(request, "po_stock_check.html", context=context)
 
 
-def store_sale_view(request):
-    context = {}
-    context['form']= sales_form()
-    
-   
-    if request.method == 'POST':
-        formset = product_row_formset(request.POST)
-        if formset.is_valid():
-            for form in formset:
-                
-                print(form)
-                
-            
-            return redirect('')
-
-    return render(request, "store_sale.html", context=context)

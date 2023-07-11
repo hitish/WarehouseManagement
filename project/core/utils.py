@@ -1,4 +1,5 @@
 from product.models import Product_details,Product_brand,Product_categories,product_stock,unchecked_stock
+from accounts.models import account,account_group
 import random,json,string,math
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -428,3 +429,9 @@ async def getFlipkartProductDetails(productLink):
         except:
             None
         return result
+    
+
+def create_account(name,phone,address):
+    acc_group = account_group.objects.get(id=5)
+    acc = account.objects.create(name=name,phone_number=phone,group=acc_group)
+    return acc
