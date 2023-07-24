@@ -44,6 +44,9 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'accounts.apps.AccountsConfig',
     'sales.apps.SalesConfig',
+    'django_filters',
+    'django_tables2',
+    'bootstrap3',
 ]
 
 MIDDLEWARE = [
@@ -73,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
             ],
         },
     },
@@ -87,7 +91,7 @@ WSGI_APPLICATION = 'warehouse_management.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "megabox_whm",
+        "NAME": "megabox__whm",
         "USER": "megabox_stock",
         "PASSWORD": "Mega@12345",
         "HOST": "103.159.85.152",
@@ -133,8 +137,11 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
+LOGIN_REDIRECT_URL = "/" 
 
 STATIC_URL = '/static/'
+
+
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static/"),
 )

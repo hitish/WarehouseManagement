@@ -1,23 +1,27 @@
 from django.http import HttpResponse,JsonResponse
+from django.contrib.auth.decorators import user_passes_test
 from django.shortcuts import render,redirect
 from django.template.loader import get_template
-from product.forms import Purchase_order_form,po_stock_check_form,sales_form,product_row_formset
-from .models import Purchase_order,unchecked_stock,checked_stock,Product_brand,Product_categories,product_qc_status
-from accounts.models import account
-from django.db.models import Q
+from product.forms import Purchase_order_form,po_stock_check_form
+from .models import Purchase_order,unchecked_stock,checked_stock,Product_brand,Product_categories,product_qc_status,Product_details
+from .filters import ProductFilter
+from .tables import ProductTable
+#from accounts.models import account
+#from django.db.models import Q
 import pandas as pd
 import math
 from django.core.files.storage import FileSystemStorage
 import core.utils as utils
-from io import BytesIO
-from barcode import EAN13,Code128,UPCA,Code39
-from barcode.writer import SVGWriter
+from django_filters.views import FilterView
+from django_tables2.views import SingleTableMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 #from django.views.decorators.csrf import csrf_exempt
 
-
+@user_passes_test(utils.is_stock_manager,login_url='/login/')
 def add_purchase_order_view(request):
-    
+    context={}
+    form = Purchase_order_form()
     if request.method == 'POST' and request.FILES['order_detail_file']:
         instance = request.POST
         po_added = Purchase_order.objects.create(purchase_details=instance['purchase_details'],order_detail_file=request.FILES['order_detail_file'],quantity=instance['quantity'],value=instance['value'])
@@ -41,6 +45,7 @@ def add_purchase_order_view(request):
                     product_code = row['online_code']
 
                 product = utils.check_product(product_code)
+
                 if not product:
                     product = utils.add_product(row,product_code)
                 
@@ -63,16 +68,15 @@ def add_purchase_order_view(request):
             form = Purchase_order_form()
         else:
             form = Purchase_order_form(instance)
-    else:
-        form = Purchase_order_form()
-
-    tmpl = get_template("add_purchase_order.html")
-    tmpl_string = tmpl.render({"form": form})
-
-    return HttpResponse(tmpl_string)
+    
+    
+    context["form"] = form
+    
+    return render(request, "add_purchase_order.html",context )
 
 
 
+@user_passes_test(utils.is_stock_manager,login_url='/login/')
 def add_checked_stock_view(request):
     context = {}
     context['brands']= Product_brand.objects.all()
@@ -104,28 +108,18 @@ def add_checked_stock_view(request):
         if obj:
             try:
                 utils.update_product_checked_stock(product_code,instance['quantity'])
-                    
-                #  rv = BytesIO()
-                upc_code = "MB" + qc_status.qc_code
-                for i in range(6 - len(str(obj.id))):
-                    upc_code = upc_code + "0"
-                upc_code = upc_code + str(obj.id)
-                # Code128(upc_code, writer=SVGWriter()).write(rv)
-                filename = "static/barcode/" + upc_code + ".svg"
-                with open(filename, "wb") as f:
-                    writr = SVGWriter()
-                    writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
-                    Code128(upc_code, writer=writr).write(f)
-                obj.barcode = upc_code
+                code = utils.create_barcode(qc_status.qc_code,obj.id)
+                #print(code)
+                obj.barcode = code
+                obj.save()
+                utils.generate_barcode_file(code)
                 context["product_saved"] = obj
-                # context["barcode_byte"] = rv.read()
                 context["product_name"] = product.product_name
                 context["mrp"] = int(float(product.mrp))
                 context["message"] = "Product Saved Successfully"
-                obj.save()
             except Exception as e:
                 error = 'Error updating stock {}'.format(e)
-                print(error)
+                #print(error)
                 context["message"] = error
                 context["product_saved"] = False
               
@@ -169,13 +163,14 @@ async def web_scrap_product_data(request, product_id):
     # return json for the js caller
     return JsonResponse(result, content_type="application/json")
 
-
+@user_passes_test(utils.is_stock_manager,login_url='/login/')
 def po_stock_check_view(request):
     context = {}
     context['brands']= Product_brand.objects.all()
     context['categories']= Product_categories.objects.all()
     context['qc_status_list'] = product_qc_status.objects.all()
     context['products'] = {}
+    context["product_saved"] = False
     form_purchase_order = po_stock_check_form()
    
     if request.method == 'GET':
@@ -188,11 +183,11 @@ def po_stock_check_view(request):
                 if 'Box_no' in instance.keys():
                     if not instance['Box_no'] == "":
                         box_no = instance['Box_no']
-                        products = unchecked_stock.objects.filter(purchase_id_id=po_id,box_id="13")
+                        products = unchecked_stock.objects.filter(purchase_id_id=po_id,box_id=box_no)
                     else:
                         products = unchecked_stock.objects.filter(purchase_id_id =po_id)
                 else:
-                    products = unchecked_stock.objects.filter(purchase_id_id =34)
+                    products = unchecked_stock.objects.filter(purchase_id_id =selected_purchase_order)
             except Exception as e:
                 print(e)
 
@@ -213,26 +208,15 @@ def po_stock_check_view(request):
 
         obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)
 
-
         if obj:
             try:
                 utils.update_product_stock_cheking(instance['unchecked_id'],instance['quantity'],True)
+                code = utils.create_barcode(qc_status.qc_code,obj.id)
+                obj.barcode = code
+                obj.save()
+                utils.generate_barcode_file(code)
                 
-                 # length = 12- len(str(obj.id))
-              #  rv = BytesIO()
-                upc_code = "MB" + qc_status.qc_code
-                for i in range(6 - len(str(obj.id))):
-                    upc_code = upc_code + "0"
-                upc_code = upc_code + str(obj.id)
-               # Code128(upc_code, writer=SVGWriter()).write(rv)
-                filename = "static/barcode/" + upc_code + ".svg"
-                with open(filename, "wb") as f:
-                    writr = SVGWriter()
-                    writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
-                    Code128(upc_code, writer=writr).write(f)
-                obj.barcode = upc_code
                 context["product_saved"] = obj
-               # context["barcode_byte"] = rv.read()
                 context["product_name"] = product.product_name
                 context["mrp"] = int(float(product.mrp))
                 context["message"] = "Product Saved Successfully"
@@ -243,7 +227,7 @@ def po_stock_check_view(request):
                 context["message"] = error
                 context["product_saved"] = False
 
-        obj.save()
+        
 
 
     context['form_purchase_order']  = form_purchase_order
@@ -251,3 +235,19 @@ def po_stock_check_view(request):
     return render(request, "po_stock_check.html", context=context)
 
 
+
+class FilteredProductListView(UserPassesTestMixin,SingleTableMixin, FilterView):
+    login_url = "/login/"
+    def test_func(self):
+        return utils.is_stock_manager(self.request.user)
+   
+    table_class = ProductTable
+   
+    model = Product_details
+    template_name = "stock_display.html"
+
+    filterset_class = ProductFilter
+
+    table_pagination = {
+        "per_page": 20
+    }

@@ -1,11 +1,25 @@
 from product.models import Product_details,Product_brand,Product_categories,product_stock,unchecked_stock
-from accounts.models import account,account_group
+from accounts.models import account,account_group,transaction
 import random,json,string,math
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import asyncio
 from bs4 import BeautifulSoup
 import numpy as np
+from barcode import Code128
+from barcode.writer import SVGWriter
+
+
+
+def is_stock_manager(user):
+    return user.groups.filter(name='stock_manager').exists()
+
+def is_sales(user):
+    return user.groups.filter(name='sales').exists()
+
+def is_accounts(user):
+    return user.groups.filter(name='accounts').exists()
+
 
 def check_product(online_code):
     #print(online_code)
@@ -17,27 +31,29 @@ def check_product(online_code):
     return product
 
 def check_brand(brand_name):
+
     if is_null(brand_name) or brand_name == "":
+        brand_obj = None
+    else:
         try:
             brand_obj = Product_brand.objects.get(brand_name = brand_name)
         except:
             brand_obj = Product_brand.objects.create(brand_name = brand_name)
             return brand_obj
-    else:
-        brand_obj = None
 
     return brand_obj
     
 
 def check_category(category_name):
     if is_null(category_name) or category_name == "":
+        cat_obj = None
+    else:
         try:
             cat_obj = Product_categories.objects.get(category_name = category_name)
         except:
             cat_obj = Product_categories.objects.create(category_name = category_name)
             return cat_obj
-    else:
-        cat_obj = None
+
     return cat_obj
     
 def is_null(element):
@@ -67,7 +83,19 @@ def create_product_code(row):
 
 
 def add_product(row,product_code):
-    brand_obj = check_brand(row['brand'])
+    print("brand is printer here")
+    print(row['brand'])
+    print("brand is printer here")
+
+    if not 'brand' in row.keys():
+        brand_obj = None
+    elif row['brand']== '':
+        brand_obj = None
+    elif row['brand']== None:
+        brand_obj = None
+    else:
+        brand_obj = check_brand(row['brand'])
+
     cat_obj = check_category(row['category'])
 
     if not 'rating' in row.keys():
@@ -120,6 +148,7 @@ def update_product_unchecked_stock(product_id,quantity):
         error = 'Error adding stock {}'.format(e)
         print(error)
 
+
 def update_product_checked_stock(product_id,quantity):
     try:
         product =  product_stock.objects.get(product_id=product_id)
@@ -128,6 +157,7 @@ def update_product_checked_stock(product_id,quantity):
     except Exception as e:
         error = 'Error adding stock {}'.format(e)
         print(error)
+
 
 def update_product_stock_cheking(unchecked_id,quantity,checked=bool):
     try:
@@ -154,7 +184,6 @@ def update_product_stock_cheking(unchecked_id,quantity,checked=bool):
     except Exception as e:
         error = 'Error updating stock {}'.format(e)
         print(error)
-
 
 
 async def getAmazonProductDetails(productLink):
@@ -339,14 +368,14 @@ async def getFlipkartProductDetails(productLink):
              print(error)
 
         try:
-            originalPrice = webPage.split('<h1')[1].split(">₹")[2].split("</div>")[0].split('<!-- -->')[0].replace(',', '')
+            mrp = webPage.split('<h1')[1].split(">₹")[2].split("</div>")[0].split('<!-- -->')[0].replace(',', '')
         except Exception as e:
              error = 'Error for fetching original price for page is {}'.format(e)
              print(error)
 
         try:
-            discount = originalPrice-currentPrice
-            discountPercent = math.floor(discount/originalPrice * 100)
+            discount = mrp-currentPrice
+            discountPercent = math.floor(discount/mrp * 100)
             discountPercentIndicator = str(discountPercent) + '% off'
         except Exception as e:
              error = 'Error for fetching discount for page is {}'.format(e)
@@ -416,7 +445,7 @@ async def getFlipkartProductDetails(productLink):
              error = 'Error for fetching model for page is {}'.format(e)
              print(error)
        
-        result = {'name': productName, 'current_price': currentPrice, 'original_price': originalPrice,
+        result = {'name': productName, 'current_price': currentPrice, 'mrp': mrp,
                   'discount': discountPercentIndicator, 'share_url': productLink, 'rating':rating,'model':model, 'size':size,
                   'color': color, 'brand':brand,'metadata':metadata}
     except Exception as e:
@@ -435,3 +464,30 @@ def create_account(name,phone,address):
     acc_group = account_group.objects.get(id=5)
     acc = account.objects.create(name=name,phone_number=phone,group=acc_group)
     return acc
+
+
+def create_transaction(voucher,acc,entry_type,amount):
+    if entry_type:
+        new_acc_bal = acc.balance + float(amount)
+    else:
+        new_acc_bal = acc.balance - float(amount)
+
+    transaction.objects.create(voucher=voucher,account_id=acc,entry_type=entry_type,amount=amount,account_balance=new_acc_bal)
+    acc.balance = new_acc_bal
+    acc.save()
+
+def create_barcode(qc_code,checked_stock_id):
+    code = "MB" + qc_code
+    for i in range(6 - len(str(checked_stock_id))):
+        code = code + "0"
+            
+    code = code + str(checked_stock_id)
+    return code
+
+def generate_barcode_file(code):
+    filename = "static/barcode/" + code + ".svg"
+    with open(filename, "wb") as f:
+        writr = SVGWriter()
+        writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
+        Code128(code, writer=writr).write(f)
+        

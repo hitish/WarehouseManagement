@@ -18,3 +18,12 @@ class product_sold(models.Model):
     qty = models.IntegerField()
     discount = models.DecimalField(default=0,decimal_places=2,max_digits=5)
     price_per_piece = models.DecimalField(decimal_places=2,max_digits=25)
+
+
+class product_returned(models.Model):
+    sale_bill_id = models.ForeignKey("sale_bill", on_delete=models.CASCADE,null=True)
+    product = models.ForeignKey("product.product_details", on_delete=models.CASCADE,null=True)
+    qty = models.IntegerField()
+    price_per_piece = models.DecimalField(decimal_places=2,max_digits=25)
+    reason = models.CharField(null=True,max_length=300)
+    timestamp = models.DateTimeField(auto_now_add=True)

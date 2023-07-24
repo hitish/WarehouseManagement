@@ -13,6 +13,7 @@
             <li><a href="{{domain}}/product/add-purchase-order/" class="d-inline-flex align-items-center rounded">Add Purchase Order</a></li>
             <li><a href="{{domain}}/product/add-checked-stock/" class="d-inline-flex align-items-center rounded">Add Checked Stock</a></li>
             <li><a href="{{domain}}/product/po-stock-checking/" class="d-inline-flex align-items-center rounded">Check Products</a></li>
+            <li><a href="{% url 'stock-display'  %}" class="d-inline-flex align-items-center rounded">Stock Display</a></li>
             
         </ul>
       </div>
@@ -26,6 +27,19 @@
           <ul class="list-unstyled fw-normal pb-1 small">
               <li><a href="{{domain}}/accounts/account-transaction/" class="d-inline-flex align-items-center rounded">Account Transaction</a></li>
               <li><a href="{{domain}}/accounts/account-display/" class="d-inline-flex align-items-center rounded">Account Display</a></li>
+              
+          </ul>
+        </div>
+      </li>
+      <li class="mb-1">
+        <button class="btn d-inline-flex align-items-center rounded collapsed" data-bs-toggle="collapse" data-bs-target="#sales-menu" aria-expanded="false">
+          Sales
+        </button>
+  
+        <div class="collapse" id="sales-menu">
+          <ul class="list-unstyled fw-normal pb-1 small">
+              <li><a href="{{domain}}/sales/store-sale/" class="d-inline-flex align-items-center rounded">Product Sale</a></li>
+              <li><a href="{{domain}}/sales/sale-return/" class="d-inline-flex align-items-center rounded">Sale Return</a></li>
               
           </ul>
         </div>

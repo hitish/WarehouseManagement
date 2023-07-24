@@ -20,6 +20,8 @@ class Purchase_order_form(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         
+
+        
 class po_stock_check_form(forms.Form):
     Purchase_order = forms.ModelChoiceField(queryset=Purchase_order.objects.all())
     Box_no = forms.CharField( max_length=100, required=False)

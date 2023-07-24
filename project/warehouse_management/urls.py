@@ -15,19 +15,28 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
 from product.views import add_purchase_order_view,add_checked_stock_view,web_scrap_product_data,po_stock_check_view
+from product.views import FilteredProductListView
 from accounts.views import account_transaction_view,account_display_view
-from sales.views import store_sale_view
+from sales.views import store_sale_view,sale_return_view
+from django.views.generic.base import TemplateView
 
 
 urlpatterns = [
     path('product/add-purchase-order/', add_purchase_order_view),
     path('product/po-stock-checking/', po_stock_check_view),
     path('product/add-checked-stock/', add_checked_stock_view),
+    path('product/stock-display/', FilteredProductListView.as_view() , name='stock-display'),
+
     path('sales/store-sale/', store_sale_view),
+    path('sales/sale-return/', sale_return_view),
+
     path('product/add-checked-stock/<str:product_id>', web_scrap_product_data),
     path('accounts/account-transaction/', account_transaction_view),
     path('accounts/account-display/', account_display_view),
     path('admin/', admin.site.urls),
+
+    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', include('django.contrib.auth.urls')),
 ]

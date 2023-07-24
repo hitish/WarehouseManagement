@@ -7,70 +7,7 @@
 
 {% block content %}
     
-<div class="modal fade" id="onload" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-	<div class="modal-dialog modal-dialog-centered">
-	  <div class="modal-content">
-		<div class="modal-header">
-		  <h5 class="modal-title" id="exampleModalLabel">Status</h5>
-		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-		</div>
-		<div class="modal-body">
-			{{ message }}
-
-			<div id="print-area" style="width:260px;height:120px;font-size:12px">
-				<div class="row " style="height:40px;overflow:hidden">
-					<div class="col-12">
-						{{product_name}}
-					</div>
-					
-				</div>
-				<div class=" row ">
-					<div class="col-7">
-						<image src="../../static/barcode/{{ product_saved.barcode }}.svg" style="height:80px;width:160px"/>
-					</div>
-					<div class="col-5">
-						<div class=" row ">
-							<div class="col-12">
-								MRP : {{mrp}}
-							</div>
-						</div>
-						<div class=" row ">
-							<div class="col-12">
-								MBP : {{product_saved.mbp}}
-							</div>
-						</div>
-						<div class=" row ">
-							<div class="col-12">
-								MEGABOX
-							</div>
-						</div>
-					</div>
-				</div>
-
-			</div>
-		</div>
-		<div class="modal-footer">
-		  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-		  {% if not product_saved == False  %}
-		  	<button type="button" id="print_barcode" class="btn btn-primary">Print Barcode</button>
-		  {% endif %}
-		</div>
-	  </div>
-	</div>
-  </div>
-  <script type="text/javascript">
-    window.onload = () => {
-		 {% if not product_saved == None  %}
-		 	$('#onload').modal('show');
-		 {% endif %}
-	
-	$("#print_barcode").click(function(){
-
-		$("#print-area").printThis();
-	  });
-	
-    }
-  </script>
+{% include "success_print_modal.html" with message=message product_name=product_name product_saved=product_saved  %}
 
 <form action = "" method = "get" enctype="multipart/form-data">
 	{% csrf_token %}
@@ -82,13 +19,17 @@
 
 	<div class=" mb-3 row ">
 		<div class = "form-floating col-12">
-			<select class="form-select" name="online_code" id="id_online_code" style="padding-left:45px" >
-                <option value="0">----Select Product----</opiton>
+			
+			<input type="text" class="form-control" list="available-products" name="lot_stock" maxlength="300"  id="id_lot_stock">
+			<datalist id="available-products">
+				
 				{%for product in products %}
-					<option value="{{product.online_code.product_id}}" unchecked_id="{{product.id}}" quantity ="{{product.quantity|sub:product.checked_quantity}}" >{{product.online_code.product_id}} - {{product.online_code}}</option>
+
+					<option data-value="{{product.online_code.product_id}}" data-uncheck="{{product.id}}" data-qty = "{{product.quantity|sub:product.checked_quantity}}" data-sosp ="{{product.sosp}}" data-cat ="{{product.online_code.category_id.category_name}}" data-brand ="{{product.online_code.brand_id.brand_name}}" data-mrp ="{{product.online_code.mrp}}" data-name="{{product.online_code.product_name}}" value="{{product.online_code.product_name}} - {{product.online_code.product_id}}">
 				{% endfor %}
-			</select>
-            <label class="col-sm-2 col-form-label" for="id_online_code">Product id:</label>
+			</datalist>
+			<label class="col-sm-4 col-form-label" for="id_lot_stock">Product:</label>
+
 		</div>
 	</div>
 	<div class=" mb-3 row ">
@@ -142,12 +83,17 @@
 	</div>
 
 	<div class="row mb-3">
-		<div class="form-floating col-3">
-			<input type="number" class="form-control" name="cosp" id="id_cosp" min="0" step="0.01" readonly >
-			<label class="col-sm-6 col-form-label" for="id_cosp">Current OSP</label>
+		<div class="form-floating col-2">
+			<input type="number" class="form-control" name="sosp" id="id_sosp" min="0" step="0.01" readonly >
+			<label class="col-sm-6 col-form-label" for="id_sosp">SOSP</label>
 		</div>
 
-		<div class="form-floating col-3">
+		<div class="form-floating col-2">
+			<input type="number" class="form-control" name="cosp" id="id_cosp" min="0" step="0.01" readonly >
+			<label class="col-sm-6 col-form-label" for="id_cosp">COSP</label>
+		</div>
+
+		<div class="form-floating col-2">
 			<input type="number" class="form-control" name="mrp" id="id_mrp" min="0" step="0.01">
 			<label class="col-sm-4 col-form-label" for="id_mrp">MRP:</label>
 		</div>
@@ -183,15 +129,24 @@
 {% block js_block %}
 
 <script>
-	$("#id_online_code").change(function () {
+	$("#id_lot_stock").change(function () {
 	  
-	  var unchecked_id = $('option:selected', this).attr("unchecked_id");
-	  var quantity = $('option:selected', this).attr("quantity");
-	  console.log(unchecked_id);
-	  console.log(quantity);id_unchecked_id
+	  var sel_product = document.getElementById("id_lot_stock").value;
+	  
+	  var online_code = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.value;
+	  var unchecked_id = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.uncheck;
+	  var quantity = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.qty;
+	  var prod_name = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.name;
+	  var prod_brand = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.brand;
+	  var prod_cat = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.cat;
+	  var prod_sosp = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.sosp;
+	  var prod_mrp = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.mrp;
+	 	
+	 
+	  
 	  $("#id_quantity").attr({"max":quantity});
 	  $("#id_unchecked_id").val(unchecked_id);
-	  var online_code = $(this).val();  // get the selected country ID from the HTML input
+
 	  var link = "/product/add-checked-stock/"
 	  var purl = link.concat(online_code);
 	  var settings = {
@@ -202,16 +157,52 @@
 	  
 		$.ajax(settings).done(function (response) {
 			  console.log(response)
-			  $("#id_name").val(response['name']);
-			  $("#id_brand").val(response['brand']);
-			  $("#id_category").val(response['category']);
-			  $("#id_model").val(response['model']);
-			  $("#id_color").val(response['color']);
-			  $("#id_rating").val(response['rating']);
-			  $("#id_size").val(response['size']);
-			  $("#id_cosp").val(response['current_price']);
-			  $("#id_mrp").val(response['original_price']);
-			  $("#id_metadata").val(JSON.stringify(response['metadata']));
+			  if(response){
+					
+				
+					if(response['name'] == "" || response['name'] ==null)
+					{
+						$("#id_name").val(prod_name);
+					}else{
+						$("#id_name").val(response['name']);
+					}
+
+					if(prod_brand == "")
+					{
+						$("#id_brand").val(response['brand']);
+					}else{
+						$("#id_brand").val(prod_brand);
+					}
+
+					if(prod_cat == "")
+					{
+						$("#id_category").val(response['cateogry']);
+					}else{
+						$("#id_category").val(prod_cat);
+					}
+					if(prod_mrp == "")
+					{
+						$("#id_mrp").val(response['mrp']);
+					}else{
+						$("#id_mrp").val(prod_mrp);
+					}
+					
+					
+					$("#id_model").val(response['model']);
+					$("#id_color").val(response['color']);
+					$("#id_rating").val(response['rating']);
+					$("#id_size").val(response['size']);
+					$("#id_cosp").val(response['current_price']);
+					$("#id_sosp").val(prod_sosp);
+					$("#id_metadata").val(JSON.stringify(response['metadata']));
+			  }else{
+				$("#id_sosp").val(prod_sosp);
+				$("#id_mrp").val(prod_mrp);
+				$("#id_category").val(prod_cat);
+				$("#id_brand").val(prod_brand);
+				$("#id_name").val(prod_name);
+
+			  }
 		});
 	});
   </script>
