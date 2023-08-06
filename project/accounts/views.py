@@ -5,6 +5,14 @@ from accounts.forms import create_account_transaction_form,create_account_displa
 from .models import voucher,transaction,account,voucher_type
 from datetime import datetime, timedelta
 import core.utils as utils
+
+from .filters import AccountFilter
+from .tables import AccountTable
+
+from django_filters.views import FilterView
+from django_tables2.views import SingleTableMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
+
 # Create your views here.
 
 def create_account(request):
@@ -77,3 +85,20 @@ def account_display_view(request):
             print(e)
     
     return render(request, "account_display.html", context)
+
+
+class FilteredAccountListView(UserPassesTestMixin,SingleTableMixin, FilterView):
+    login_url = "/login/"
+    def test_func(self):
+        return utils.is_accounts(self.request.user)
+   
+    table_class = AccountTable
+   
+    model = account
+    template_name = "account_list.html"
+
+    filterset_class = AccountFilter
+
+    table_pagination = {
+        "per_page": 20
+    }
