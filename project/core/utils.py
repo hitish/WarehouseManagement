@@ -1,4 +1,4 @@
-from product.models import Product_details,Product_brand,Product_categories,product_stock,unchecked_stock
+from product.models import Product_details,Product_brand,Product_categories,product_stock,unchecked_stock,Purchase_order
 from accounts.models import account,account_group,transaction
 import random,json,string,math
 from selenium import webdriver
@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import numpy as np
 from barcode import Code128
 from barcode.writer import SVGWriter
+from django.db.models import F
 
 
 
@@ -83,10 +84,7 @@ def create_product_code(row):
 
 
 def add_product(row,product_code):
-    print("brand is printer here")
-    print(row['brand'])
-    print("brand is printer here")
-
+   
     if not 'brand' in row.keys():
         brand_obj = None
     elif row['brand']== '':
@@ -167,7 +165,7 @@ def update_product_stock_cheking(unchecked_id,quantity,checked=bool):
         
         if checked :
             diff = unchecked.quantity-unchecked.checked_quantity
-            if diff>quantity:
+            if diff>=quantity:
               unchecked.checked_quantity = unchecked.checked_quantity + quantity
               product.checked_stock = product.checked_stock + quantity
               product.unchecked_stock = product.unchecked_stock - quantity
@@ -491,3 +489,15 @@ def generate_barcode_file(code):
         writr.set_options({"module_width":0.35, "module_height":10, "font_size": 18, "text_distance": 1, "quiet_zone": 3})
         Code128(code, writer=writr).write(f)
         
+def get_products_po(purchase_order,box_no):
+    products = {}
+    selected_purchase_order = Purchase_order.objects.get(id=purchase_order)
+    try: 
+        if not box_no == "":
+            products = unchecked_stock.objects.filter(purchase_id_id=selected_purchase_order,box_id=box_no,quantity__gt=F("checked_quantity"))
+        else:
+            products = unchecked_stock.objects.filter(purchase_id_id =selected_purchase_order,quantity__gt=F("checked_quantity"))
+    except Exception as e:
+        print(e)
+
+    return(products)

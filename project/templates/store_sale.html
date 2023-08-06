@@ -163,7 +163,7 @@
 		if(pay_option == "-2")
 		{
 			$("#id_reference").prop('required',true);
-			
+			$("#id_amount_paid").val(0);
 			$("#id_amount_paid").prop('disabled',true);
 		}
 		else{
@@ -193,13 +193,14 @@
 	$("#add-product").click(function () {
 		var checked_stock_id = $("#id_checked_stock").val();
 		var qty = $("#id_quantity").val();
+		qty = parseInt(qty);
 		var priceperpiece = $("#id_priceperpiece").val();
 		var sel_product = document.getElementById("id_checked_stock").value;
 		var product__id = 0;
 		
 		product__id = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.value;
 		max_qty = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.maxqty;
-		
+		max_qty = parseInt(max_qty);
 		if(!(qty==0 || priceperpiece == null || priceperpiece == 0 || qty == null || product__id == 0) )
 		{
 			if(qty <= max_qty)

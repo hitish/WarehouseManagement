@@ -2,12 +2,12 @@ from django.shortcuts import render
 from django.db.models import Q,F
 from django.contrib.auth.decorators import user_passes_test
 from .models import sale_bill,product_sold,product_returned
-from accounts.models import account,voucher,transaction,voucher_type
+from accounts.models import account,voucher,transaction,voucher_type,account_group
 from product.models import checked_stock,product_stock,Product_details,product_qc_status
 import core.utils as utils
-from django.contrib.auth.models import User,auth
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from datetime import datetime, timedelta
+
+from .forms import create_sales_report
 
 # Create your views here.
 
@@ -186,8 +186,87 @@ def sale_return_view(request):
                         pay_acc_id = account.objects.get(id = instance["payment-option"])
                         
                         utils.create_transaction(voucher=pay_voucher_id,acc=pay_acc_id,entry_type=False,amount=amount_refunded)
-
-
-
     return render(request, "sale_return.html", context=context)
     
+
+
+@user_passes_test(utils.is_sales,login_url='/login/')
+def check_bill_view(request):
+    context = {}
+    if request.method == 'GET':
+        instance = request.GET
+
+        if "sales_id" in instance.keys():
+             
+             sales_id = instance["sales_id"]
+             sales_obj = sale_bill.objects.get(id = sales_id)
+             if sales_obj:
+                account_details = account.objects.get(id=sales_obj.account_id.id)
+                context["account"] = account_details
+                context["date"] = sales_obj.timestamp
+                context["item_total"] = sales_obj.product_qty
+                context["grand_total"] = int(sales_obj.bill_amount)
+
+                product_list = product_sold.objects.filter(sale_bill_id=instance["sales_id"])
+
+                products = []
+                for prod in product_list:
+                    
+                    product_name = prod.checked_stock_id.product_id.product_name
+                    qty = prod.qty  
+                    ppp = prod.price_per_piece
+                    product_total = qty * ppp
+                    
+                    products.append([product_name,qty,int(ppp),int(product_total)])
+                
+                context["products"] = products
+                context["sales_id"] = instance["sales_id"]
+                
+    return render(request, "check_bill_details.html", context=context)
+
+
+
+@user_passes_test(utils.is_sales,login_url='/login/')
+def sales_report(request):
+    context = {}
+    context["form"] = create_sales_report()
+
+    if request.method == 'POST':
+        instance = request.POST
+        if not instance["account_group"] == None :
+            acc_type = account_group.objects.get(id=instance["account_group"])
+        else:
+            acc_type = "all"
+
+        start_date = datetime.strptime(instance["start_date"], '%Y-%m-%d').date()
+        end_date = datetime.strptime(instance["end_date"], '%Y-%m-%d').date() +timedelta(days=1)
+        sales_table = []
+        try:
+            voucher__type = voucher_type.objects.get(id=2)
+            if acc_type == "all":
+                sales = voucher.objects.filter(timestamp__gte = start_date , timestamp__lte = end_date )
+            else:
+                 sales = voucher.objects.filter(voucher_type = voucher__type,timestamp__gte = start_date , timestamp__lte = end_date )
+            
+          
+            for sale in sales:
+                sale_entry = {}
+                sale_entry["date"] = sale.timestamp.date()
+                sale_entry["description"] = sale.description
+                str1 = sale.voucher_object_id
+                print(int(filter(str1.isdigit(), str1)))
+                if sale.voucher_object_id:
+                    sale_entry["account_id"] = sale.voucher_object_id.account_id.id
+                    sale_entry["name"] = sale.voucher_object_id.account_id.name
+                
+                sale_entry["amount"] = sale.amount
+
+                sales_table.append(sale_entry)
+
+            context['form']= create_sales_report(instance)
+            context['sales_table']= sales_table
+                
+        except Exception as e:
+            print(e)
+
+    return render(request, "sales_report.html", context=context)

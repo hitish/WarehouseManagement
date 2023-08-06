@@ -30,8 +30,6 @@ class create_account_transaction_form(forms.Form):
 
 class create_account_display_form(forms.Form):
 
-    #selected_account =  forms.ChoiceField(choices=[('','Select Account')]+[(account1.id,account1.name) for account1 in 
-    #                                                                      account.objects.filter()])
     selected_account =  forms.ModelChoiceField(widget=forms.Select, queryset=account.objects.all())
     start_date = forms.DateField(widget=forms.TextInput(attrs={'type': 'date'} ))
     end_date = forms.DateField(widget=forms.TextInput(attrs={'type': 'date'} ))

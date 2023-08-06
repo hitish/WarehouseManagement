@@ -2,7 +2,7 @@
 	<div class="modal-dialog modal-dialog-centered">
 	  <div class="modal-content">
 		<div class="modal-header">
-		  <h5 class="modal-title" id="exampleModalLabel">Status</h5>
+		  <h5 class="modal-title" id="exampleModalLabel">Print Barcode</h5>
 		  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 		</div>
 		<div class="modal-body">
@@ -51,15 +51,19 @@
   </div>
   
   <script type="text/javascript">
-    window.onload = () => {
+
+	$(window).on('load', function () {
 		 {% if not product_saved == 0  %}
 		 	$('#onload').modal('show');
 		 {% endif %}
-	
+		 {% if product_saved == False  %}
+		 	alert(message);
+		 {% endif %}
+		});
 	$("#print_barcode").click(function(){
 
 		$("#print-area").printThis();
 	  });
 	
-    }
+    
   </script>

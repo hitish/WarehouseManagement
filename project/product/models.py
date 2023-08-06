@@ -23,6 +23,7 @@ class Product_details(models.Model):
 class Product_categories(models.Model):
     category_name= models.CharField(max_length=100,unique=True)
     category_desc=models.TextField(null=True)
+    parent_category_id = models.ForeignKey("Product_categories",on_delete=models.CASCADE,null=True,related_name="parent_category")
 
     def __str__(self):
         return self.category_name

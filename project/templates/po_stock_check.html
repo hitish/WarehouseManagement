@@ -21,8 +21,8 @@
 		<div class = "form-floating col-12">
 			
 			<input type="text" class="form-control" list="available-products" name="lot_stock" maxlength="300"  id="id_lot_stock">
+			<input type="hidden" name="online_code" id="online_code_id">
 			<datalist id="available-products">
-				
 				{%for product in products %}
 
 					<option data-value="{{product.online_code.product_id}}" data-uncheck="{{product.id}}" data-qty = "{{product.quantity|sub:product.checked_quantity}}" data-sosp ="{{product.sosp}}" data-cat ="{{product.online_code.category_id.category_name}}" data-brand ="{{product.online_code.brand_id.brand_name}}" data-mrp ="{{product.online_code.mrp}}" data-name="{{product.online_code.product_name}}" value="{{product.online_code.product_name}} - {{product.online_code.product_id}}">
@@ -40,7 +40,7 @@
 	</div>
 	<div class="row mb-3">
 		<div class="form-floating col-4">
-			<input type="number" class="form-control" name="quantity" id="id_quantity" min="0" step="1" required>
+			<input type="number" class="form-control" name="quantity" id="id_quantity" min="1" step="1" required>
 			<label class="col-sm-4 col-form-label" for="id_quantity">Quantity</label>
 		</div>
 		<div class="form-floating col-4">
@@ -130,10 +130,9 @@
 
 <script>
 	$("#id_lot_stock").change(function () {
-	  
 	  var sel_product = document.getElementById("id_lot_stock").value;
-	  
 	  var online_code = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.value;
+	  $('#online_code_id').val(online_code);
 	  var unchecked_id = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.uncheck;
 	  var quantity = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.qty;
 	  var prod_name = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.name;
@@ -141,9 +140,7 @@
 	  var prod_cat = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.cat;
 	  var prod_sosp = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.sosp;
 	  var prod_mrp = document.querySelector("#available-products option[value='"+sel_product+"']").dataset.mrp;
-	 	
-	 
-	  
+	
 	  $("#id_quantity").attr({"max":quantity});
 	  $("#id_unchecked_id").val(unchecked_id);
 

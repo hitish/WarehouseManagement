@@ -6,8 +6,6 @@ from product.forms import Purchase_order_form,po_stock_check_form
 from .models import Purchase_order,unchecked_stock,checked_stock,Product_brand,Product_categories,product_qc_status,Product_details
 from .filters import ProductFilter
 from .tables import ProductTable
-#from accounts.models import account
-#from django.db.models import Q
 import pandas as pd
 import math
 from django.core.files.storage import FileSystemStorage
@@ -15,8 +13,10 @@ import core.utils as utils
 from django_filters.views import FilterView
 from django_tables2.views import SingleTableMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
+import os
+from django.conf import settings
 
-#from django.views.decorators.csrf import csrf_exempt
+
 
 @user_passes_test(utils.is_stock_manager,login_url='/login/')
 def add_purchase_order_view(request):
@@ -31,7 +31,7 @@ def add_purchase_order_view(request):
             fs = FileSystemStorage()
             filename = fs.save(myfile.name, myfile)
             uploaded_file_url = fs.url(filename)              
-            exceldata = pd.read_excel(filename)         
+            exceldata = pd.read_excel(filename,engine="openpyxl")         
             dbframe = exceldata
             i=0
             product= {}
@@ -163,6 +163,7 @@ async def web_scrap_product_data(request, product_id):
     # return json for the js caller
     return JsonResponse(result, content_type="application/json")
 
+
 @user_passes_test(utils.is_stock_manager,login_url='/login/')
 def po_stock_check_view(request):
     context = {}
@@ -176,21 +177,7 @@ def po_stock_check_view(request):
     if request.method == 'GET':
         instance = request.GET
         if 'Purchase_order' in instance.keys():
-            products = {}
-            po_id = int(instance['Purchase_order'])
-            selected_purchase_order = Purchase_order.objects.get(id=instance['Purchase_order'])
-            try: 
-                if 'Box_no' in instance.keys():
-                    if not instance['Box_no'] == "":
-                        box_no = instance['Box_no']
-                        products = unchecked_stock.objects.filter(purchase_id_id=po_id,box_id=box_no)
-                    else:
-                        products = unchecked_stock.objects.filter(purchase_id_id =po_id)
-                else:
-                    products = unchecked_stock.objects.filter(purchase_id_id =selected_purchase_order)
-            except Exception as e:
-                print(e)
-
+            products = utils.get_products_po(instance["Purchase_order"],instance["Box_no"])
             context['products'] = products
             form_purchase_order = po_stock_check_form(instance)
             
@@ -206,26 +193,39 @@ def po_stock_check_view(request):
         else:
             cosp = instance['cosp']
 
-        obj = checked_stock.objects.create(product_id=product,quantity=instance['quantity'], cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)
+        qty = int(instance['quantity'])
+        
+        if qty > 0 :
+            obj = checked_stock.objects.create(product_id=product,quantity=qty, cosp=cosp,mbp=instance['mbp'],qc_status=qc_status)
 
-        if obj:
-            try:
-                utils.update_product_stock_cheking(instance['unchecked_id'],instance['quantity'],True)
-                code = utils.create_barcode(qc_status.qc_code,obj.id)
-                obj.barcode = code
-                obj.save()
-                utils.generate_barcode_file(code)
-                
-                context["product_saved"] = obj
-                context["product_name"] = product.product_name
-                context["mrp"] = int(float(product.mrp))
-                context["message"] = "Product Saved Successfully"
+            if obj:
+                try:
+                    utils.update_product_stock_cheking(instance['unchecked_id'],qty,True)
+                    code = utils.create_barcode(qc_status.qc_code,obj.id)
+                    obj.barcode = code
+                    obj.save()
+                    utils.generate_barcode_file(code)
+                    
+                    context["product_saved"] = obj
+                    context["product_name"] = product.product_name
+                    context["mrp"] = int(float(product.mrp))
+                    context["message"] = "Product Saved Successfully"
 
-            except Exception as e:
-                error = 'Error updating stock {}'.format(e)
-                print(error)
-                context["message"] = error
-                context["product_saved"] = False
+                    get_instance = request.GET
+                    if 'Purchase_order' in get_instance.keys():
+                        products = utils.get_products_po(get_instance["Purchase_order"],get_instance["Box_no"])
+                        context['products'] = products
+                        form_purchase_order = po_stock_check_form(get_instance)
+      
+
+                except Exception as e:
+                    error = 'Error updating stock {}'.format(e)
+                    print(error)
+                    context["message"] = error
+                    context["product_saved"] = False
+        else:
+            context["message"] = "Quantity cannot be zero"
+            context["product_saved"] = False
 
         
 
@@ -251,3 +251,25 @@ class FilteredProductListView(UserPassesTestMixin,SingleTableMixin, FilterView):
     table_pagination = {
         "per_page": 20
     }
+
+
+@user_passes_test(utils.is_stock_manager,login_url='/login/')
+def reprint_barcode_view(request):
+    context = {}
+   
+    if request.method == 'GET':
+        instance = request.GET
+        if 'barcode' in instance.keys():
+            barcode = instance["barcode"]
+            checked_product = checked_stock.objects.get(barcode=barcode)
+            if checked_product:
+                path = os.path.join(settings.BASE_DIR, "static/barcode/"+barcode+".svg")
+                if not os.path.isfile(path):
+                    utils.generate_barcode_file(barcode)
+                context["product_saved"] = checked_product
+                context["product_name"] = checked_product.product_id.product_name
+                context["mrp"] = int(float(checked_product.product_id.mrp))
+                context["message"] = ""
+                context["barcode"]=barcode
+
+    return render(request, "reprint_barcode.html", context=context)
